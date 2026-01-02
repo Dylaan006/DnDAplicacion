@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client"
 import { useParams, useRouter } from "next/navigation";
 import { 
   Users, Briefcase, Upload, Loader2, LogOut, Dices, 
@@ -11,7 +11,6 @@ import {
 
 export default function GameRoomPage() {
   const { code } = useParams();
-  const supabase = createClient();
   const router = useRouter();
 
   // --- ESTADOS ---

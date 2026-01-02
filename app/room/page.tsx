@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client";
+
 import { useRouter } from "next/navigation";
 import { Users, Plus, DoorOpen, Sword, Hash, ChevronLeft } from "lucide-react";
 
@@ -11,7 +12,6 @@ export default function RoomLobbyPage() {
   const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     const fetchChars = async () => {
