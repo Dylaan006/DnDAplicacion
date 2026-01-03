@@ -4,14 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Sword, Shield, Users, LogOut, Home } from "lucide-react";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client.ts"
 import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
+
 
   // Si estamos en login o registro, NO mostramos el sidebar
   if (pathname.startsWith("/auth")) {

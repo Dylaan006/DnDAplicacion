@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation";
 import { PlusCircle, User, LogOut, Sword } from "lucide-react";
 
@@ -21,7 +21,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     const fetchUserDataAndCharacters = async () => {

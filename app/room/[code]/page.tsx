@@ -126,6 +126,27 @@ export default function GameRoomPage() {
     await supabase.from("room_logs").insert({ room_id: room.id, user_name: "SISTEMA", content: `⚔️ ${myCharacter.name} iniciativa: ${total} (${die}+${mod})` });
   };
 
+  // Función para tirar iniciativa de un personaje específico (Enemigos u otros jugadores)
+  const rollSpecificInitiative = async (targetChar: any) => {
+    if (!room) return;
+    const die = Math.floor(Math.random() * 20) + 1;
+    
+    // Soporte para ambos idiomas
+    const dex = targetChar.destreza || targetChar.dexterity || 10;
+    const mod = getMod(dex); 
+    const total = die + mod;
+
+    await supabase.from("characters").update({ initiative: total }).eq("id", targetChar.id);
+    
+    // Log diferenciado para saber quién tiró
+    const actorName = isDM ? "DM" : myCharacter?.name;
+    await supabase.from("room_logs").insert({ 
+        room_id: room.id, 
+        user_name: "SISTEMA", 
+        content: `⚔️ ${targetChar.name} iniciativa: ${total} (${die}+${mod}) [Tirado por ${actorName}]` 
+    });
+  };
+
   const updateHP = async (charId: string, current: number, max: number, amount: number) => {
     const newHP = Math.min(Math.max(current + amount, 0), max);
     await supabase.from("characters").update({ hp_current: newHP }).eq("id", charId);
@@ -285,16 +306,27 @@ export default function GameRoomPage() {
 
                             return (
                                 <div key={p.id} className={`p-3 rounded-xl border relative ${isEnemy ? 'bg-red-950/20 border-red-900/40' : (canControl ? 'bg-slate-900 border-amber-500/30' : 'bg-slate-900/40 border-slate-800')}`}>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div className="flex flex-col max-w-[60%]">
-                                            <span className={`font-bold text-xs truncate ${isEnemy ? 'text-red-400' : 'text-slate-200'}`}>{char.name}</span>
-                                            {isEnemy && <span className="text-[9px] text-slate-500 flex items-center gap-1"><Footprints size={8}/> {char.speed}</span>}
-                                        </div>
-                                        <div className="flex gap-1.5 items-center">
-                                            {char.initiative > 0 && <span className="text-[10px] bg-orange-950/40 px-2 py-0.5 rounded border border-orange-500/50 text-orange-400 font-bold">⚔️ {char.initiative}</span>}
-                                            <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-amber-500 font-bold">AC {char.armor_class}</span>
-                                        </div>
-                                    </div>
+                                   <div className="flex justify-between items-center mb-2">
+    <div className="flex flex-col max-w-[60%]">
+        <span className={`font-bold text-xs truncate ${isEnemy ? 'text-red-400' : 'text-slate-200'}`}>{char.name}</span>
+        {isEnemy && <span className="text-[9px] text-slate-500 flex items-center gap-1"><Footprints size={8}/> {char.speed}</span>}
+    </div>
+    <div className="flex gap-1.5 items-center">
+        {/* BOTÓN DE INICIATIVA NUEVO */}
+        {canControl && (
+            <button 
+                onClick={() => rollSpecificInitiative(char)}
+                className="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white p-1 rounded transition"
+                title="Tirar Iniciativa"
+            >
+                <Dices size={12} />
+            </button>
+        )}
+        
+        {char.initiative > 0 && <span className="text-[10px] bg-orange-950/40 px-2 py-0.5 rounded border border-orange-500/50 text-orange-400 font-bold">⚔️ {char.initiative}</span>}
+        <span className="text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-amber-500 font-bold">AC {char.armor_class}</span>
+    </div>
+</div>
                                     {showHP ? (
                                         <>
                                             <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden mb-1"><div className={`h-full transition-all ${char.hp_current/char.hp_max < 0.3 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{width: `${(char.hp_current/char.hp_max)*100}%`}} /></div>
