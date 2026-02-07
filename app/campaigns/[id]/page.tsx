@@ -326,13 +326,22 @@ export default function CampaignRoomPage() {
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs font-bold text-slate-400 uppercase">
                                         <span>Puntos de Golpe</span>
-                                        <span>{char.hp_current} / {char.hp_max}</span>
+                                        <span className={char.hp_temp ? 'text-emerald-400' : ''}>
+                                            {char.hp_current} {char.hp_temp ? `(+${char.hp_temp})` : ''} / {char.hp_max}
+                                        </span>
                                     </div>
                                     <div className="h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-800 relative group/hp">
                                         <div
                                             className="h-full bg-red-600 transition-all duration-500 ease-out"
                                             style={{ width: `${Math.max(0, Math.min(100, (char.hp_current / char.hp_max) * 100))}%` }}
                                         />
+                                        {/* Vista previa de HP Temporal (overlay) */}
+                                        {char.hp_temp && (
+                                            <div
+                                                className="absolute top-0 left-0 h-full bg-emerald-500/50 transition-all duration-500"
+                                                style={{ width: `${Math.min(100, (char.hp_temp / char.hp_max) * 100)}%` }}
+                                            />
+                                        )}
                                     </div>
 
                                     {/* HP Controls (Owner Only) */}
@@ -368,9 +377,17 @@ export default function CampaignRoomPage() {
 
                                 {/* Secondary Stats */}
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-slate-950 p-2 rounded-lg text-center border border-slate-800">
+                                    <div className="bg-slate-950 p-2 rounded-lg text-center border border-slate-800 relative">
                                         <div className="text-xs text-slate-500 uppercase font-bold flex justify-center items-center gap-1"><Shield size={10} /> CA</div>
-                                        <div className="font-mono font-bold text-lg">{char.armor_class}</div>
+                                        <div className={`font-mono font-bold text-lg ${char.temp_ac ? 'text-emerald-400' : ''}`}>
+                                            {char.armor_class + (char.temp_ac || 0)}
+                                        </div>
+                                        {/* Indicador sutil de bono */}
+                                        {char.temp_ac && (
+                                            <div className="absolute top-1 right-1 text-[8px] text-emerald-500 font-bold">
+                                                +{char.temp_ac}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="bg-slate-950 p-2 rounded-lg text-center border border-slate-800 relative group/inic">
                                         <div className="text-xs text-slate-500 uppercase font-bold flex justify-center items-center gap-1"><Zap size={10} /> INIC</div>

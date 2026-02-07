@@ -289,13 +289,52 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl opacity-50 pointer-events-none">
-                                <h3 className="text-lg font-bold text-slate-500 mb-2 flex items-center gap-2">
-                                    <Shield className="text-slate-500" size={20} /> Bonus de CA Temporal
+                            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                                <h3 className="text-lg font-bold text-slate-400 mb-2 flex items-center gap-2">
+                                    <Shield className="text-slate-400" size={20} /> Bonus de CA Temporal
                                 </h3>
-                                <p className="text-sm text-slate-500">
-                                    Próximamente: Podrás añadir bonificadores temporales a tu Clase de Armadura (ej: Escudo de Fe).
+                                <p className="text-sm text-slate-400 mb-4">
+                                    Añade un bonificador temporal a tu Clase de Armadura (ej: Escudo de Fe, Cobertura).
                                 </p>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                                        <div className="text-xs font-bold text-slate-500 uppercase mb-1">CA Temporal Actual</div>
+                                        <div className="text-3xl font-black text-white">{character.temp_ac || 0}</div>
+                                    </div>
+                                    {isOwner && (
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    placeholder="Ej: 2"
+                                                    className="w-24 bg-slate-950 border border-slate-700 p-2 rounded text-white text-center"
+                                                    id="tempAcInput"
+                                                />
+                                                <button
+                                                    onClick={async () => {
+                                                        const input = document.getElementById('tempAcInput') as HTMLInputElement;
+                                                        const val = Number(input.value);
+                                                        if (val !== 0) {
+                                                            await (supabase.from("characters") as any).update({ temp_ac: val }).eq("id", character.id);
+                                                            input.value = "";
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded font-bold text-white transition"
+                                                >
+                                                    Fijar
+                                                </button>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    await (supabase.from("characters") as any).update({ temp_ac: 0 }).eq("id", character.id);
+                                                }}
+                                                className="px-4 py-2 bg-red-900/10 hover:bg-red-900/30 border border-red-900/50 rounded font-bold text-red-300 transition text-sm"
+                                            >
+                                                Eliminar Bono
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

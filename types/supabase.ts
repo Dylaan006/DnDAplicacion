@@ -60,6 +60,7 @@ export interface Character {
   hp_max: number;
   hp_temp?: number;
   armor_class: number;
+  temp_ac?: number;
   speed: string; // "30 ft"
   initiative: number;
 
