@@ -53,7 +53,7 @@ export default function DMToolsPage() {
 
         const { data: { user } } = await supabase.auth.getUser();
 
-        const { data, error } = await supabase.from("badges").insert({
+        const { data, error } = await (supabase.from("badges") as any).insert({
             name: newBadge.name,
             description: newBadge.description,
             icon_key: newBadge.icon_key,
@@ -72,7 +72,7 @@ export default function DMToolsPage() {
     const handleAwardBadge = async () => {
         if (!selectedChar || !selectedBadge) return;
 
-        const { error } = await supabase.from("character_badges").insert({
+        const { error } = await (supabase.from("character_badges") as any).insert({
             character_id: selectedChar,
             badge_id: selectedBadge
         });
