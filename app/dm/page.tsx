@@ -11,10 +11,7 @@ export default function DMToolsPage() {
     const supabase = createClient();
     const [loading, setLoading] = useState(true);
     // Data State
-
-    // Data State
     const [badges, setBadges] = useState<Badge[]>([]);
-    const [characters, setCharacters] = useState<Character[]>([]);
 
     // Create Badge Form
     const [newBadge, setNewBadge] = useState({ name: "", description: "", icon_key: "🏆" });
@@ -36,10 +33,8 @@ export default function DMToolsPage() {
 
             // Fetch Data
             const { data: badgesData } = await supabase.from("badges").select("*").eq("created_by", user.id).order("created_at", { ascending: false });
-            const { data: charsData } = await supabase.from("characters").select("*").order("name");
 
             if (badgesData) setBadges(badgesData);
-            if (charsData) setCharacters(charsData as unknown as Character[]); // Cast to avoid strict type mismatch if any
 
             setLoading(false);
         };
