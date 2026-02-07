@@ -50,7 +50,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     // Update Initiative
     const updateInitiative = async (val: number) => {
         setLocalInitiative(val);
-        await supabase.from("characters").update({ initiative: val }).eq("id", character.id);
+        await (supabase.from("characters") as any).update({ initiative: val }).eq("id", character.id);
     };
 
     // Helper for modifiers
@@ -71,7 +71,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
         }
 
         // Actualizamos en Supabase (El componente padre recibirá el update por Realtime y nos pasará la nueva prop character)
-        await supabase.from("characters").update({ abilities: updatedAbilities as any }).eq("id", character.id);
+        await (supabase.from("characters") as any).update({ abilities: updatedAbilities as any }).eq("id", character.id);
 
         setIsAbilityFormOpen(false);
         setEditingAbilityIndex(null);
@@ -81,7 +81,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     const handleDeleteAbility = async (index: number) => {
         if (!confirm("¿Borrar habilidad?")) return;
         const updatedAbilities = character.abilities.filter((_, i) => i !== index);
-        await supabase.from("characters").update({ abilities: updatedAbilities as any }).eq("id", character.id);
+        await (supabase.from("characters") as any).update({ abilities: updatedAbilities as any }).eq("id", character.id);
     };
 
     const openAbilityForm = (ability: Ability | null = null, index: number | null = null) => {
@@ -100,12 +100,12 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
         if (!itemForm.name) return;
 
         if (editingItem) {
-            const { error } = await supabase.from("items").update({ name: itemForm.name, description: itemForm.description }).eq("id", editingItem.id);
+            const { error } = await (supabase.from("items") as any).update({ name: itemForm.name, description: itemForm.description }).eq("id", editingItem.id);
             if (!error) {
                 setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...itemForm } : i));
             }
         } else {
-            const { data, error } = await supabase.from("items").insert({
+            const { data, error } = await (supabase.from("items") as any).insert({
                 character_id: character.id,
                 name: itemForm.name,
                 description: itemForm.description,
@@ -124,7 +124,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     const handleDeleteItem = async (itemId: string) => {
         if (!confirm("¿Borrar objeto?")) return;
         setItems(prev => prev.filter(i => i.id !== itemId));
-        await supabase.from("items").delete().eq("id", itemId);
+        await (supabase.from("items") as any).delete().eq("id", itemId);
     };
 
     const openItemForm = (item: Item | null = null) => {
