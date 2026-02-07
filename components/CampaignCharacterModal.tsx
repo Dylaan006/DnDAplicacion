@@ -152,9 +152,12 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                         <div>
                             <h2 className="text-2xl font-black text-white leading-none">{character.name}</h2>
                             <p className="text-slate-400 font-medium mt-1">Nvl {character.level} {character.class}</p>
-                            <div className="flex gap-4 mt-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            <div className="flex flex-wrap gap-4 mt-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
                                 <span className="flex items-center gap-1"><Shield size={12} /> CA {character.armor_class}</span>
                                 <span className="flex items-center gap-1"><Zap size={12} /> VEL {character.speed}</span>
+                                <span className={`flex items-center gap-1 ${character.hp_temp ? 'text-emerald-400' : ''}`}>
+                                    ❤️ HP {character.hp_current} {character.hp_temp ? `(+${character.hp_temp})` : ''} / {character.hp_max}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -217,7 +220,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                 </div>
 
                 {/* CONTENT */}
-                <div className="flex-1 overflow-y-auto p-6 bg-slate-800/50">
+                <div className="flex-1 overflow-y-auto p-6 pb-24 bg-slate-800/50">
 
                     {/* TAB STATS */}
                     {activeTab === 'stats' && (
