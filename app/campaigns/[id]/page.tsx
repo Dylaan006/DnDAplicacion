@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
-import { Shield, Users, Heart, Zap, Sword, Award, Gift, LogOut, PlusCircle, Trash2 } from "lucide-react";
+import { Shield, Users, Heart, Zap, Sword, Award, Gift, LogOut, PlusCircle, Trash2, X } from "lucide-react";
 import { Campaign, CampaignParticipant, Character } from "@/types/supabase";
 
 import CampaignCharacterModal from "@/components/CampaignCharacterModal";
@@ -273,11 +273,18 @@ export default function CampaignRoomPage() {
         await (supabase.from("characters") as any).update(updates).eq("id", char.id);
     };
 
+    // Mobile Init Tracker State
+    const [isInitTrackerOpen, setIsInitTrackerOpen] = useState(false);
+
     if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-amber-500">Conectando al Tablero...</div>;
 
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6" onClick={() => setOpenMenuId(null)}>
+        <div className="min-h-screen bg-slate-950 text-white p-6" onClick={() => {
+            setOpenMenuId(null);
+            // Close mobile tracker if clicking outside (optional, but good UX)
+            // We won't auto-close here to avoid accidental closes, use the close button
+        }}>
             {/* ... HEADER ... */}
             <header className="max-w-7xl mx-auto mb-8 border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 {/* ... header content ... */}
@@ -319,7 +326,7 @@ export default function CampaignRoomPage() {
             </header>
 
             {/* GRID DE PERSONAJES */}
-            <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <main className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-24 xl:pb-0">
 
                 {participants.filter(p => p.role !== 'dm').map((participant) => {
                     const char = participant.characters;
@@ -560,6 +567,85 @@ export default function CampaignRoomPage() {
                 </div>
             )}
 
+            {/* INIT TRACKER TOGGLE BUTTON (VISIBLE ALWAYS) */}
+            <button
+                onClick={() => setIsInitTrackerOpen(!isInitTrackerOpen)}
+                className={`fixed bottom-6 right-6 z-50 p-4 bg-amber-600 hover:bg-amber-500 text-white rounded-full shadow-2xl border-2 border-amber-400 group transition active:scale-95 flex items-center justify-center gap-2 ${isInitTrackerOpen ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : ''}`}
+                title="Ver Iniciativa"
+            >
+                {isInitTrackerOpen ? <X size={24} /> : <Zap size={24} className="fill-current" />}
+            </button>
+
+            {/* INIT TRACKER SIDEBAR (Slide-over on all screens) */}
+            <div className={`fixed right-0 top-0 bottom-0 w-80 bg-slate-900/95 backdrop-blur-md border-l border-slate-800 p-4 transform transition-transform duration-300 z-40 pt-24 ${isInitTrackerOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full'}`}>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-amber-500 font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <Zap size={16} /> Orden de Iniciativa
+                    </h3>
+                </div>
+
+                <div className="space-y-2 overflow-y-auto h-[calc(100%-3rem)] pb-20"> {/* pb-20 so it doesn't get covered by the button */}
+                    {[
+                        ...participants.filter(p => p.characters).map(p => ({
+                            id: p.characters!.id,
+                            name: p.characters!.name,
+                            initiative: p.characters!.initiative,
+                            isEnemy: false,
+                            hp_current: p.characters!.hp_current,
+                            hp_max: p.characters!.hp_max,
+                            race: p.characters!.race
+                        })),
+                        ...enemies.map(e => ({
+                            id: e.id,
+                            name: e.name,
+                            initiative: e.initiative,
+                            isEnemy: true,
+                            hp_current: e.hp_current,
+                            hp_max: e.hp_max,
+                            race: "Enemigo"
+                        }))
+                    ]
+                        .sort((a, b) => b.initiative - a.initiative)
+                        .map((combatant, idx) => (
+                            <div key={combatant.id} className={`p-3 rounded-xl border flex items-center gap-3 ${combatant.isEnemy ? 'bg-red-950/30 border-red-900/30' : 'bg-slate-800 border-slate-700'}`}>
+                                <div className="text-xl font-black text-slate-500 w-6 text-center">{idx + 1}</div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center">
+                                        <h4 className={`font-bold text-sm truncate ${combatant.isEnemy ? 'text-red-300' : 'text-slate-200'}`}>{combatant.name}</h4>
+
+                                        {/* DM Enemy Initiative Control */}
+                                        {isDM && combatant.isEnemy ? (
+                                            <input
+                                                type="number"
+                                                className="w-8 bg-transparent text-right font-mono font-bold text-xs text-yellow-500 outline-none"
+                                                value={combatant.initiative}
+                                                onChange={async (e) => {
+                                                    const val = Number(e.target.value);
+                                                    const updatedEnemies = enemies.map(en => en.id === combatant.id ? { ...en, initiative: val } : en);
+                                                    setEnemies(updatedEnemies);
+                                                    await (supabase.from("campaigns") as any).update({
+                                                        description: `${campaign?.description?.split("|||JSON|||")[0] || ""}|||JSON|||${JSON.stringify({ enemies: updatedEnemies })}`
+                                                    }).eq("id", campaignId);
+                                                }}
+                                            />
+                                        ) : (
+                                            <span className="font-mono font-bold text-xs text-yellow-500">{combatant.initiative}</span>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1">
+                                        <div className="h-1.5 flex-1 bg-slate-950 rounded-full overflow-hidden mr-2">
+                                            <div
+                                                className={`h-full ${combatant.isEnemy ? 'bg-red-600' : 'bg-emerald-500'}`}
+                                                style={{ width: `${Math.max(0, Math.min(100, (combatant.hp_current / combatant.hp_max) * 100))}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                </div>
+            </div>
+
             {/* MODAL CREAR ENEMIGO */}
             {isEnemyModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsEnemyModalOpen(false)}>
@@ -611,7 +697,7 @@ export default function CampaignRoomPage() {
                                 disabled={!newEnemy.name}
                                 className="w-full py-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold text-white mt-2 disabled:opacity-50"
                             >
-                                Invovar Enemigo
+                                Invocar Enemigo
                             </button>
                         </div>
                     </div>
