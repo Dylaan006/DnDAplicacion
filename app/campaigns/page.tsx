@@ -46,7 +46,7 @@ export default function CampaignsPage() {
             if (joined) setMyParticipations(joined as any); // Cast for nested join
 
             // 4. Fetch Characters (for joining)
-            const { data: chars } = await supabase.from("characters").select("*").eq("user_id", user.id);
+            const { data: chars } = await (supabase.from("characters").select("*").eq("user_id", user.id) as any);
             if (chars) {
                 setMyCharacters(chars);
                 if (chars.length > 0) setSelectedCharId(chars[0].id);
