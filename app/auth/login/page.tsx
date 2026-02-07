@@ -1,7 +1,7 @@
 "use client"; // Indica que este componente usa interactividad del lado del cliente
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase"; // Asegúrate de que la ruta coincida
+import { createClient } from "@/lib/supabase/client"; // Asegúrate de que la ruta coincida
 import { useRouter } from "next/navigation";
 import { Sword } from "lucide-react";
 

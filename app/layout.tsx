@@ -16,14 +16,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" className="bg-slate-950">
       <body className={`${inter.className} bg-slate-950 text-white flex`}>
         {/* Aquí insertamos el Sidebar. 
             Como el Sidebar tiene lógica para ocultarse en /auth, no estorbará en el login. 
             El 'flex' en el body hace que se pongan uno al lado del otro en Desktop.
         */}
         <Sidebar />
-        
+
         {/* Este div envuelve el contenido principal de tus páginas */}
         <div className="flex-1 min-h-screen relative w-full">
           {children}

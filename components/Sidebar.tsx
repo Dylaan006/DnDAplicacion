@@ -1,22 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Sword, Shield, Users, LogOut, Home } from "lucide-react";
+import { Menu, X, Sword, Shield, Users, LogOut, Home, Award } from "lucide-react";
 import { supabase } from "@/lib/supabase/client.ts"
 import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDM, setIsDM] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
 
-  // Si estamos en login o registro, NO mostramos el sidebar
-  if (pathname.startsWith("/auth")) {
-    return null;
-  }
+  useEffect(() => {
+    const checkRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (data && (data.role === 'dm' || data.role === 'admin')) {
+          setIsDM(true);
+        }
+      }
+    };
+    checkRole();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -24,11 +33,26 @@ export default function Sidebar() {
     setIsOpen(false);
   };
 
+
+
+  // Si estamos en login o registro, NO mostramos el sidebar
+  if (pathname.startsWith("/auth")) {
+    return null;
+  }
+
   const navItems = [
     { name: "Mis Personajes", href: "/dashboard", icon: Home },
+    {
+      name: isDM ? "Crear Campaña" : "Unirse a Campaña",
+      href: "/campaigns",
+      icon: Users
+    },
     { name: "Crear Héroe", href: "/character/create", icon: Sword },
-    { name: "Unirse a Sala", href: "/room/join", icon: Users }, // Placeholder
   ];
+
+  if (isDM) {
+    navItems.push({ name: "Insignias", href: "/dm", icon: Award });
+  }
 
   return (
     <>
@@ -49,13 +73,11 @@ export default function Sidebar() {
       )}
 
       {/* El Sidebar en sí */}
-      <aside
-        className={`
+      <aside className={`
           fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-800 z-50 transform transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 md:static md:h-screen
-        `}
-      >
+          md:translate-x-0 md:sticky md:top-0 md:h-screen
+        `}>
         <div className="flex flex-col h-full p-6">
           {/* Cabecera */}
           <div className="flex items-center justify-between mb-10">
@@ -80,11 +102,10 @@ export default function Sidebar() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-amber-600/20 text-amber-500 border border-amber-600/30"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? "bg-amber-600/20 text-amber-500 border border-amber-600/30"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                    }`}
                 >
                   <item.icon size={20} />
                   <span className="font-medium">{item.name}</span>
@@ -104,7 +125,7 @@ export default function Sidebar() {
             </button>
           </div>
         </div>
-      </aside>
+      </aside >
     </>
   );
 }
