@@ -18,7 +18,7 @@ export default function Sidebar() {
     const checkRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        const { data } = await (supabase.from('profiles').select('role').eq('id', user.id).single() as any);
         if (data && (data.role === 'dm' || data.role === 'admin')) {
           setIsDM(true);
         }
