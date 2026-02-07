@@ -106,7 +106,8 @@ export const RACES = [
     { id: "gnome", name: "Gnomo", desc: "Pequeños inventores curiosos." },
     { id: "half-elf", name: "Semielfo", desc: "Combinan las mejores cualidades." },
     { id: "half-orc", name: "Semiorco", desc: "Fuertes y feroces." },
-    { id: "tiefling", name: "Tiefling", desc: "Herederos de un linaje infernal." }
+    { id: "tiefling", name: "Tiefling", desc: "Herederos de un linaje infernal." },
+    { id: "goblin", name: "Goblin", desc: "Pequeños, ágiles y traviesos." }
 ];
 
 export const SKILLS_LIST = [
