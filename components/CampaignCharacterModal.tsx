@@ -15,7 +15,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     const supabase = createClient();
     const isOwner = character.user_id === currentUser;
 
-    const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'inventory'>('stats');
+    const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'inventory' | 'temporal'>('stats');
     const [items, setItems] = useState<Item[]>([]);
     const [loadingItems, setLoadingItems] = useState(false);
 
@@ -186,25 +186,31 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                     </div>
                 </div>
 
-                {/* TABS */}
-                <div className="flex bg-slate-950 px-6 pt-2 border-b border-slate-800">
+                {/* TABS SCROLLABLE */}
+                <div className="flex bg-slate-950 px-6 pt-2 border-b border-slate-800 overflow-x-auto no-scrollbar">
                     <button
                         onClick={() => setActiveTab('stats')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition ${activeTab === 'stats' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'stats' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                     >
                         Atributos
                     </button>
                     <button
                         onClick={() => setActiveTab('abilities')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition ${activeTab === 'abilities' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'abilities' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                     >
                         Habilidades
                     </button>
                     <button
                         onClick={() => setActiveTab('inventory')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition ${activeTab === 'inventory' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'inventory' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                     >
                         Inventario
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('temporal')}
+                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'temporal' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                    >
+                        Temporal
                     </button>
                 </div>
 
@@ -224,6 +230,68 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* TAB TEMPORAL (NUEVO) */}
+                    {activeTab === 'temporal' && (
+                        <div className="space-y-6">
+                            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+                                <h3 className="text-lg font-bold text-amber-500 mb-2 flex items-center gap-2">
+                                    <Shield className="text-amber-500" size={20} /> Puntos de Golpe Temporales
+                                </h3>
+                                <p className="text-sm text-slate-400 mb-4">
+                                    Los puntos de golpe temporales absorben daño antes de que este afecte a tus puntos de golpe reales.
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                                        <div className="text-xs font-bold text-slate-500 uppercase mb-1">HP Temporal Actual</div>
+                                        <div className="text-3xl font-black text-white">{character.hp_temp || 0}</div>
+                                    </div>
+                                    {isOwner && (
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    placeholder="Cantidad"
+                                                    className="w-24 bg-slate-950 border border-slate-700 p-2 rounded text-white text-center"
+                                                    id="tempHpInput"
+                                                />
+                                                <button
+                                                    onClick={async () => {
+                                                        const input = document.getElementById('tempHpInput') as HTMLInputElement;
+                                                        const val = Number(input.value);
+                                                        if (val > 0) {
+                                                            await (supabase.from("characters") as any).update({ hp_temp: val }).eq("id", character.id);
+                                                            input.value = "";
+                                                        }
+                                                    }}
+                                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded font-bold text-white transition"
+                                                >
+                                                    Fijar
+                                                </button>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    await (supabase.from("characters") as any).update({ hp_temp: 0 }).eq("id", character.id);
+                                                }}
+                                                className="px-4 py-2 bg-red-900/30 hover:bg-red-900 border border-red-800 rounded font-bold text-red-200 transition text-sm"
+                                            >
+                                                Eliminar HP Temp
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl opacity-50 pointer-events-none">
+                                <h3 className="text-lg font-bold text-slate-500 mb-2 flex items-center gap-2">
+                                    <Shield className="text-slate-500" size={20} /> Bonus de CA Temporal
+                                </h3>
+                                <p className="text-sm text-slate-500">
+                                    Próximamente: Podrás añadir bonificadores temporales a tu Clase de Armadura (ej: Escudo de Fe).
+                                </p>
+                            </div>
                         </div>
                     )}
 

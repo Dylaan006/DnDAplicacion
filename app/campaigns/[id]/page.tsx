@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
-import { Shield, Users, Heart, Zap, Sword, Award, Gift, LogOut } from "lucide-react";
+import { Shield, Users, Heart, Zap, Sword, Award, Gift, LogOut, PlusCircle, Trash2 } from "lucide-react";
 import { Campaign, CampaignParticipant, Character } from "@/types/supabase";
 
 import CampaignCharacterModal from "@/components/CampaignCharacterModal";
@@ -11,6 +11,15 @@ import CampaignCharacterModal from "@/components/CampaignCharacterModal";
 type ParticipantWithChar = CampaignParticipant & {
     characters: Character | null;
     profiles: { role: string } | null
+};
+
+type Enemy = {
+    id: string;
+    name: string;
+    hp_current: number;
+    hp_max: number;
+    ac: number;
+    initiative: number;
 };
 
 export default function CampaignRoomPage() {
@@ -25,6 +34,11 @@ export default function CampaignRoomPage() {
     const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+    // Enemy State
+    const [enemies, setEnemies] = useState<Enemy[]>([]);
+    const [isEnemyModalOpen, setIsEnemyModalOpen] = useState(false);
+    const [newEnemy, setNewEnemy] = useState({ name: "", hp: 10, ac: 10, initiative: 0 });
+
     // Restored missing state
     const [participants, setParticipants] = useState<ParticipantWithChar[]>([]);
     const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -38,6 +52,19 @@ export default function CampaignRoomPage() {
 
     // Inicialización y Carga de Datos
     useEffect(() => {
+        const parseEnemies = (desc: string | null) => {
+            if (!desc) return [];
+            const parts = desc.split("|||JSON|||");
+            if (parts.length > 1) {
+                try {
+                    return JSON.parse(parts[1]).enemies || [];
+                } catch (e) {
+                    return [];
+                }
+            }
+            return [];
+        };
+
         const fetchParticipants = async () => {
             const { data } = await supabase
                 .from("campaign_participants")
@@ -63,8 +90,10 @@ export default function CampaignRoomPage() {
                 alert("Campaña no encontrada");
                 return router.push("/campaigns");
             }
-            setCampaign(camp);
-            const userIsDM = (camp as Campaign).dm_id === user.id;
+            const campaignData = camp as Campaign;
+            setCampaign(campaignData);
+            setEnemies(parseEnemies(campaignData.description));
+            const userIsDM = campaignData.dm_id === user.id;
             setIsDM(userIsDM);
 
             // 2. Cargar Participantes iniciales (con sus personajes)
@@ -111,6 +140,16 @@ export default function CampaignRoomPage() {
                     }));
                 }
             )
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` },
+                (payload) => {
+                    console.log("Cambio en campaña detectado", payload);
+                    const newCamp = payload.new as Campaign;
+                    setCampaign(newCamp);
+                    setEnemies(parseEnemies(newCamp.description));
+                }
+            )
             .subscribe();
 
         return () => {
@@ -122,6 +161,49 @@ export default function CampaignRoomPage() {
         // Optimistic update (opcional, pero la suscripción ya lo manejaría)
         // Por ahora confiamos en Realtime o podríamos hacer optimistic aquí si se siente lento
         await (supabase.from("characters") as any).update({ [stat]: value }).eq("id", charId);
+    };
+
+    // Enemy Handlers
+    const saveEnemies = async (updatedEnemies: Enemy[]) => {
+        const originalDesc = campaign?.description?.split("|||JSON|||")[0] || "";
+        const payload = { enemies: updatedEnemies };
+        const newDesc = `${originalDesc}|||JSON|||${JSON.stringify(payload)}`;
+        // Optimistic
+        setEnemies(updatedEnemies);
+        await (supabase.from("campaigns") as any).update({ description: newDesc }).eq("id", campaignId);
+    };
+
+    const handleAddEnemy = async () => {
+        if (!newEnemy.name) return;
+        const enemy: Enemy = {
+            id: crypto.randomUUID(),
+            name: newEnemy.name,
+            hp_current: newEnemy.hp,
+            hp_max: newEnemy.hp,
+            ac: newEnemy.ac,
+            initiative: newEnemy.initiative
+        };
+        const updated = [...enemies, enemy];
+        await saveEnemies(updated);
+        setIsEnemyModalOpen(false);
+        setNewEnemy({ name: "", hp: 10, ac: 10, initiative: 0 });
+    };
+
+    const handleDeleteEnemy = async (enemyId: string) => {
+        if (!confirm("¿Borrar enemigo?")) return;
+        const updated = enemies.filter(e => e.id !== enemyId);
+        await saveEnemies(updated);
+    };
+
+    const updateEnemyHP = async (enemyId: string, change: number) => {
+        const updated = enemies.map(e => {
+            if (e.id === enemyId) {
+                const newHp = Math.max(0, Math.min(e.hp_max, e.hp_current + change));
+                return { ...e, hp_current: newHp };
+            }
+            return e;
+        });
+        await saveEnemies(updated);
     };
 
     const handleGrantBadge = async (badgeId: string) => {
@@ -157,18 +239,26 @@ export default function CampaignRoomPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                     {isDM && (
-                        <button
-                            onClick={() => router.push("/dm")}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold flex items-center gap-2"
-                        >
-                            <Award size={16} /> Gestionar Insignias
-                        </button>
+                        <>
+                            <button
+                                onClick={() => setIsEnemyModalOpen(true)}
+                                className="px-4 py-2 bg-red-900/50 hover:bg-red-900 border border-red-800 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-red-200 transition"
+                            >
+                                <PlusCircle size={16} /> Ver/Crear Enemigos
+                            </button>
+                            <button
+                                onClick={() => router.push("/dm")}
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
+                            >
+                                <Award size={16} /> Gestionar Insignias
+                            </button>
+                        </>
                     )}
                     <button
                         onClick={() => router.push("/campaigns")}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold flex items-center gap-2"
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
                     >
                         <LogOut size={16} /> Salir
                     </button>
@@ -307,6 +397,56 @@ export default function CampaignRoomPage() {
                     );
                 })}
 
+                {/* ENEMIES GRID */}
+                {enemies.map((enemy) => (
+                    <div key={enemy.id} className="relative bg-red-950/20 rounded-2xl border border-red-900/50 overflow-visible group">
+                        {/* Header */}
+                        <div className="h-16 bg-gradient-to-r from-red-950/50 to-slate-900 p-4 flex items-center gap-3 relative">
+                            <div className="w-12 h-12 rounded-lg bg-red-900/50 border border-red-800 flex items-center justify-center text-2xl shadow-lg">
+                                💀
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg leading-none text-red-200">{enemy.name}</h3>
+                                <p className="text-xs text-red-400">Enemigo {isDM && <span className="ml-1 text-red-300 font-mono">(AC {enemy.ac})</span>}</p>
+                            </div>
+                            {isDM && (
+                                <button
+                                    onClick={() => handleDeleteEnemy(enemy.id)}
+                                    className="p-2 text-red-500 hover:text-red-300 hover:bg-red-900/50 rounded-lg"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Stats */}
+                        <div className="p-4 space-y-4">
+                            <div className="space-y-1">
+                                {isDM && (
+                                    <div className="flex justify-between text-xs font-bold text-red-400 uppercase">
+                                        <span>HP</span>
+                                        <span>{enemy.hp_current} / {enemy.hp_max}</span>
+                                    </div>
+                                )}
+                                <div className="h-3 bg-slate-950 rounded-full overflow-hidden border border-red-900/30 relative">
+                                    <div
+                                        className={`h-full transition-all duration-300 ${enemy.hp_current > 0 ? (isDM ? 'bg-red-700' : 'bg-green-600') : 'bg-slate-600'}`}
+                                        style={{ width: `${isDM ? (enemy.hp_current > 0 ? (enemy.hp_current / enemy.hp_max) * 100 : 100) : 100}%` }}
+                                    />
+                                </div>
+                                {isDM && (
+                                    <div className="grid grid-cols-4 gap-1 mt-2">
+                                        <button onClick={() => updateEnemyHP(enemy.id, -5)} className="bg-red-900/30 hover:bg-red-900 text-red-500 text-[10px] font-bold py-1 rounded">-5</button>
+                                        <button onClick={() => updateEnemyHP(enemy.id, -1)} className="bg-red-900/30 hover:bg-red-900 text-red-500 text-[10px] font-bold py-1 rounded">-1</button>
+                                        <button onClick={() => updateEnemyHP(enemy.id, 1)} className="bg-emerald-900/30 hover:bg-emerald-900 text-emerald-500 text-[10px] font-bold py-1 rounded">+1</button>
+                                        <button onClick={() => updateEnemyHP(enemy.id, 5)} className="bg-emerald-900/30 hover:bg-emerald-900 text-emerald-500 text-[10px] font-bold py-1 rounded">+5</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+
                 {participants.filter(p => p.role === 'dm').length > 0 && (
                     <div className="col-span-1 md:col-span-2 xl:col-span-3 mt-8 p-4 bg-slate-900/50 border border-dashed border-slate-800 rounded-xl text-center text-slate-500">
                         <span className="font-bold">Dungeon Master:</span> {participants.find(p => p.role === 'dm')?.profiles?.role ? 'Presente' : 'Observando'}
@@ -348,6 +488,64 @@ export default function CampaignRoomPage() {
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL CREAR ENEMIGO */}
+            {isEnemyModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setIsEnemyModalOpen(false)}>
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2 text-red-400">
+                            💀 Nuevo Enemigo
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Nombre</label>
+                                <input
+                                    className="w-full bg-slate-950 border border-slate-700 p-2 rounded-lg text-white"
+                                    value={newEnemy.name}
+                                    onChange={e => setNewEnemy({ ...newEnemy, name: e.target.value })}
+                                    placeholder="Ej: Goblin Jefe"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">HP Max</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 p-2 rounded-lg text-white text-center"
+                                        value={newEnemy.hp}
+                                        onChange={e => setNewEnemy({ ...newEnemy, hp: Number(e.target.value) })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">AC</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 p-2 rounded-lg text-white text-center"
+                                        value={newEnemy.ac}
+                                        onChange={e => setNewEnemy({ ...newEnemy, ac: Number(e.target.value) })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Inic</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 p-2 rounded-lg text-white text-center"
+                                        value={newEnemy.initiative}
+                                        onChange={e => setNewEnemy({ ...newEnemy, initiative: Number(e.target.value) })}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleAddEnemy}
+                                disabled={!newEnemy.name}
+                                className="w-full py-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold text-white mt-2 disabled:opacity-50"
+                            >
+                                Invovar Enemigo
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
