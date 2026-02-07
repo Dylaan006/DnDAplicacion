@@ -142,10 +142,7 @@ export default function DMToolsPage() {
                         </div>
                     </div>
                 </div>
+            </main>
         </div>
-
-
-            </main >
-        </div >
     );
 }
