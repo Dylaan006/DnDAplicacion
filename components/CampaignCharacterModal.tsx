@@ -187,31 +187,33 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                 </div>
 
                 {/* TABS SCROLLABLE */}
-                <div className="flex bg-slate-950 px-6 pt-2 border-b border-slate-800 overflow-x-auto no-scrollbar">
-                    <button
-                        onClick={() => setActiveTab('stats')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'stats' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-                    >
-                        Atributos
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('abilities')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'abilities' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-                    >
-                        Habilidades
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('inventory')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'inventory' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-                    >
-                        Inventario
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('temporal')}
-                        className={`py-3 px-4 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'temporal' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-                    >
-                        Temporal
-                    </button>
+                <div className="flex-none bg-slate-950 px-4 pt-2 border-b border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
+                    <div className="flex gap-2 min-w-max">
+                        <button
+                            onClick={() => setActiveTab('stats')}
+                            className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'stats' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Atributos
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('abilities')}
+                            className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'abilities' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Habilidades
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('inventory')}
+                            className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'inventory' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Inventario
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('temporal')}
+                            className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'temporal' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Temporal
+                        </button>
+                    </div>
                 </div>
 
                 {/* CONTENT */}
