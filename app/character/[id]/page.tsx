@@ -95,13 +95,13 @@ export default function CharacterSheetPage() {
     // Optimistic Update
     setCharacter({ ...character, hp_current: finalHP });
 
-    await supabase.from("characters").update({ hp_current: finalHP }).eq("id", id);
+    await (supabase.from("characters") as any).update({ hp_current: finalHP }).eq("id", id);
   };
 
   const saveCharacterEdits = async () => {
     if (!character) return;
     const updates: Partial<Character> = { ...editForm };
-    const { error } = await supabase.from("characters").update(updates).eq("id", id);
+    const { error } = await (supabase.from("characters") as any).update(updates).eq("id", id);
     if (!error) {
       setCharacter({ ...character, ...editForm } as Character);
       setIsEditing(false);
@@ -112,7 +112,7 @@ export default function CharacterSheetPage() {
 
   const deleteCharacter = async () => {
     if (!confirm("¿ESTÁS SEGURO? Se borrará permanentemente.")) return;
-    const { error } = await supabase.from("characters").delete().eq("id", id);
+    const { error } = await (supabase.from("characters") as any).delete().eq("id", id);
     if (!error) router.push("/dashboard");
     else alert("Error al borrar: " + error.message);
   };
@@ -138,7 +138,7 @@ export default function CharacterSheetPage() {
     else updatedAbilities.push(abilityForm);
 
     setCharacter({ ...character, abilities: updatedAbilities });
-    await supabase.from("characters").update({ abilities: updatedAbilities as any }).eq("id", id);
+    await (supabase.from("characters") as any).update({ abilities: updatedAbilities as any }).eq("id", id);
     setIsAbilityModalOpen(false);
   };
 
@@ -146,7 +146,7 @@ export default function CharacterSheetPage() {
     if (!confirm("¿Borrar esta habilidad?") || !character) return;
     const updatedAbilities = character.abilities.filter((_, i) => i !== index);
     setCharacter({ ...character, abilities: updatedAbilities });
-    await supabase.from("characters").update({ abilities: updatedAbilities as any }).eq("id", id);
+    await (supabase.from("characters") as any).update({ abilities: updatedAbilities as any }).eq("id", id);
   };
 
   // --- GESTIÓN DE ITEMS ---
@@ -166,10 +166,10 @@ export default function CharacterSheetPage() {
     if (!character || !itemForm.name) return;
 
     if (editingItemData) {
-      const { error } = await supabase.from("items").update({ name: itemForm.name, description: itemForm.description }).eq("id", editingItemData.id);
+      const { error } = await (supabase.from("items") as any).update({ name: itemForm.name, description: itemForm.description }).eq("id", editingItemData.id);
       if (!error) setItems(items.map(i => i.id === editingItemData.id ? { ...i, ...itemForm } : i));
     } else {
-      const { data, error } = await supabase.from("items").insert({
+      const { data, error } = await (supabase.from("items") as any).insert({
         character_id: id,
         name: itemForm.name,
         description: itemForm.description,
@@ -184,7 +184,7 @@ export default function CharacterSheetPage() {
   const deleteItem = async (itemId: string) => {
     if (!confirm("¿Borrar este objeto?")) return;
     setItems(items.filter(i => i.id !== itemId));
-    await supabase.from("items").delete().eq("id", itemId);
+    await (supabase.from("items") as any).delete().eq("id", itemId);
   };
 
   const getMod = (score: number) => {
