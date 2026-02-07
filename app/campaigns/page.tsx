@@ -26,7 +26,7 @@ export default function CampaignsPage() {
             if (!user) return router.push("/auth/login");
 
             // 1. Get Role
-            const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+            const { data: profile } = await (supabase.from("profiles").select("role").eq("id", user.id).single() as any);
             const role = profile?.role as 'dm' | 'player';
             setUserRole(role);
 

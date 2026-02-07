@@ -28,7 +28,7 @@ export default function DMToolsPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return router.push("/auth/login");
 
-            const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+            const { data: profile } = await (supabase.from("profiles").select("role").eq("id", user.id).single() as any);
 
             if (!profile || (profile.role !== 'dm' && profile.role !== 'admin')) {
                 alert("Acceso Restringido: Solo para Dungeon Masters.");
