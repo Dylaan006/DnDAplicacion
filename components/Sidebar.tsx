@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Sword, Shield, Users, LogOut, Home, Award } from "lucide-react";
-import { supabase } from "@/lib/supabase/client.ts"
+import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
