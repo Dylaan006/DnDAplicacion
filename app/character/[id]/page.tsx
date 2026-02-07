@@ -42,7 +42,7 @@ export default function CharacterSheetPage() {
       .from("characters")
       .select("*")
       .eq("id", id)
-      .single();
+      .single() as any;
 
     if (charError) {
       console.error("Error personaje:", charError);
