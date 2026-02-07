@@ -121,16 +121,16 @@ export default function CampaignRoomPage() {
     const updateStat = async (charId: string, stat: 'hp_current' | 'hp_max' | 'initiative', value: number) => {
         // Optimistic update (opcional, pero la suscripción ya lo manejaría)
         // Por ahora confiamos en Realtime o podríamos hacer optimistic aquí si se siente lento
-        await supabase.from("characters").update({ [stat]: value } as any).eq("id", charId);
+        await (supabase.from("characters") as any).update({ [stat]: value }).eq("id", charId);
     };
 
     const handleGrantBadge = async (badgeId: string) => {
         if (!selectedCharId) return;
 
-        const { error } = await supabase.from("character_badges").insert({
+        const { error } = await (supabase.from("character_badges") as any).insert({
             character_id: selectedCharId,
             badge_id: badgeId
-        } as any);
+        });
 
         if (error) {
             alert("Error al dar insignia: " + error.message);
