@@ -223,12 +223,64 @@ export default function CampaignRoomPage() {
         }
     };
 
+    // Smart Damage Logic: Temp HP first, then Current HP
+    const applyDamage = async (charId: string, currentHp: number, tempHp: number = 0, damage: number) => {
+        let newTempHp = tempHp;
+        let newCurrentHp = currentHp;
+
+        if (damage > 0) {
+            // Taking Damage
+            if (newTempHp > 0) {
+                const absorbed = Math.min(newTempHp, damage);
+                newTempHp -= absorbed;
+                damage -= absorbed;
+            }
+            newCurrentHp = Math.max(0, newCurrentHp - damage);
+        } else {
+            // Healing (affects only current HP, usually)
+            // If damage is negative, it's healing.
+            // Note: Our buttons pass positive values for damage (e.g. -5 button passes -5 change).
+            // Let's stick to the convention: positive change = healing, negative change = damage
+            // But the buttons below pass negative values manually.
+            // Let's refactor the buttons to call this with signed values.
+        }
+    };
+
+    const handleHpChange = async (char: Character, change: number) => {
+        let newHpCurrent = char.hp_current;
+        let newHpTemp = char.hp_temp || 0;
+
+        if (change < 0) {
+            // Damage
+            const damage = Math.abs(change);
+            if (newHpTemp > 0) {
+                const absorbed = Math.min(newHpTemp, damage);
+                newHpTemp -= absorbed;
+                const remainingDamage = damage - absorbed;
+                newHpCurrent = Math.max(0, newHpCurrent - remainingDamage);
+            } else {
+                newHpCurrent = Math.max(0, newHpCurrent - damage);
+            }
+        } else {
+            // Healing
+            newHpCurrent = Math.min(char.hp_max, newHpCurrent + change);
+        }
+
+        // Parallel update
+        const updates: any = { hp_current: newHpCurrent };
+        if (char.hp_temp !== newHpTemp) updates.hp_temp = newHpTemp;
+
+        await (supabase.from("characters") as any).update(updates).eq("id", char.id);
+    };
+
     if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-amber-500">Conectando al Tablero...</div>;
+
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-6" onClick={() => setOpenMenuId(null)}>
-            {/* HEADER */}
+            {/* ... HEADER ... */}
             <header className="max-w-7xl mx-auto mb-8 border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                {/* ... header content ... */}
                 <div>
                     <h1 className="text-3xl font-black text-amber-500 flex items-center gap-3">
                         <Shield size={32} /> {campaign?.name}
@@ -240,6 +292,7 @@ export default function CampaignRoomPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                    {/* ... header buttons ... */}
                     {isDM && (
                         <>
                             <button
@@ -276,8 +329,7 @@ export default function CampaignRoomPage() {
 
                     return (
                         <div key={participant.id} className={`relative bg-slate-900 rounded-2xl border ${isOwner ? 'border-amber-500/50 shadow-amber-900/20 shadow-lg' : 'border-slate-800'} overflow-visible group`}>
-
-                            {/* Character Header Image/Color */}
+                            {/* ... Character Head ... */}
                             <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 p-4 flex items-end relative">
                                 <div className="flex items-center gap-3 w-full">
                                     <div className="w-16 h-16 rounded-xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-3xl shadow-lg -mb-8 z-10 cursor-pointer hover:scale-105 transition"
@@ -289,8 +341,7 @@ export default function CampaignRoomPage() {
                                         <p className="text-xs text-slate-400">{char.race} {char.class} (Nvl {char.level})</p>
                                     </div>
                                 </div>
-
-                                {/* DM 3-Dots Menu */}
+                                {/* ... DM Menu ... */}
                                 {isDM && (
                                     <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
                                         <button
@@ -312,7 +363,6 @@ export default function CampaignRoomPage() {
                                                 >
                                                     <Award size={16} /> Dar Insignia
                                                 </button>
-                                                {/* Aquí se pueden agregar más opciones futuras como "Kick" */}
                                             </div>
                                         )}
                                     </div>
@@ -336,7 +386,8 @@ export default function CampaignRoomPage() {
                                             style={{ width: `${Math.max(0, Math.min(100, (char.hp_current / char.hp_max) * 100))}%` }}
                                         />
                                         {/* Vista previa de HP Temporal (overlay) */}
-                                        {char.hp_temp && (
+                                        {/* Logic: Width is relative to Max HP. If temp hp shrinks, this shrinks. */}
+                                        {char.hp_temp && char.hp_temp > 0 && (
                                             <div
                                                 className="absolute top-0 left-0 h-full bg-emerald-500/50 transition-all duration-500"
                                                 style={{ width: `${Math.min(100, (char.hp_temp / char.hp_max) * 100)}%` }}
@@ -348,25 +399,25 @@ export default function CampaignRoomPage() {
                                     {isOwner && (
                                         <div className="grid grid-cols-4 gap-1 mt-2">
                                             <button
-                                                onClick={() => updateStat(char.id, 'hp_current', Math.max(0, char.hp_current - 5))}
+                                                onClick={() => handleHpChange(char, -5)}
                                                 className="bg-red-900/30 hover:bg-red-900/50 text-red-500 text-[10px] font-bold py-1 rounded transition"
                                             >
                                                 -5
                                             </button>
                                             <button
-                                                onClick={() => updateStat(char.id, 'hp_current', Math.max(0, char.hp_current - 1))}
+                                                onClick={() => handleHpChange(char, -1)}
                                                 className="bg-red-900/30 hover:bg-red-900/50 text-red-500 text-[10px] font-bold py-1 rounded transition"
                                             >
                                                 -1
                                             </button>
                                             <button
-                                                onClick={() => updateStat(char.id, 'hp_current', Math.min(char.hp_max, char.hp_current + 1))}
+                                                onClick={() => handleHpChange(char, 1)}
                                                 className="bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-500 text-[10px] font-bold py-1 rounded transition"
                                             >
                                                 +1
                                             </button>
                                             <button
-                                                onClick={() => updateStat(char.id, 'hp_current', Math.min(char.hp_max, char.hp_current + 5))}
+                                                onClick={() => handleHpChange(char, 5)}
                                                 className="bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-500 text-[10px] font-bold py-1 rounded transition"
                                             >
                                                 +5
@@ -382,12 +433,12 @@ export default function CampaignRoomPage() {
                                         <div className={`font-mono font-bold text-lg ${char.temp_ac ? 'text-emerald-400' : ''}`}>
                                             {char.armor_class + (char.temp_ac || 0)}
                                         </div>
-                                        {/* Indicador sutil de bono */}
-                                        {char.temp_ac && (
+                                        {/* Indicador sutil de bono - SOLO SI MAYOR A 0 */}
+                                        {char.temp_ac ? (
                                             <div className="absolute top-1 right-1 text-[8px] text-emerald-500 font-bold">
                                                 +{char.temp_ac}
                                             </div>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <div className="bg-slate-950 p-2 rounded-lg text-center border border-slate-800 relative group/inic">
                                         <div className="text-xs text-slate-500 uppercase font-bold flex justify-center items-center gap-1"><Zap size={10} /> INIC</div>
