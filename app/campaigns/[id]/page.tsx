@@ -42,7 +42,7 @@ export default function CampaignRoomPage() {
             const { data } = await supabase
                 .from("campaign_participants")
                 .select("*, characters(*), profiles(role)")
-                .eq("campaign_id", campaignId);
+                .eq("campaign_id", campaignId as string);
 
             if (data) setParticipants(data as any);
         };
@@ -56,7 +56,7 @@ export default function CampaignRoomPage() {
             const { data: camp, error } = await supabase
                 .from("campaigns")
                 .select("*")
-                .eq("id", campaignId)
+                .eq("id", campaignId as string)
                 .single();
 
             if (error || !camp) {
