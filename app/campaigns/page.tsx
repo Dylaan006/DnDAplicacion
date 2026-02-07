@@ -84,11 +84,11 @@ export default function CampaignsPage() {
         const { data: { user } } = await supabase.auth.getUser();
 
         // 1. Buscar campaña por código
-        const { data: campaign, error: findError } = await supabase
+        const { data: campaign, error: findError } = await (supabase
             .from("campaigns")
             .select("id")
             .eq("join_code", joinCode.toUpperCase())
-            .single();
+            .single() as any);
 
         if (findError || !campaign) {
             return alert("Código de campaña inválido.");
