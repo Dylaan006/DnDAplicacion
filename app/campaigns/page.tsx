@@ -79,6 +79,18 @@ export default function CampaignsPage() {
         }
     };
 
+    const handleDeleteCampaign = async (campaignId: string) => {
+        if (!confirm("¿Seguro que quieres borrar esta campaña? Se eliminará todo el progreso y participantes.")) return;
+
+        const { error } = await (supabase.from("campaigns") as any).delete().eq("id", campaignId);
+
+        if (error) {
+            alert("Error al borrar: " + error.message);
+        } else {
+            setMyCampaigns(myCampaigns.filter(c => c.id !== campaignId));
+        }
+    };
+
     const handleJoinCampaign = async () => {
         if (!joinCode || !selectedCharId) return;
         const { data: { user } } = await supabase.auth.getUser();
@@ -220,7 +232,20 @@ export default function CampaignsPage() {
                                     <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition">{c.name}</h3>
                                     <p className="text-slate-400 text-sm mt-1">Código: <span className="font-mono text-white bg-slate-800 px-2 py-0.5 rounded">{c.join_code}</span></p>
                                 </div>
-                                <ArrowRight className="text-slate-600 group-hover:text-amber-500 transition" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteCampaign(c.id);
+                                        }}
+                                        className="p-2 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-500 rounded-lg transition"
+                                        title="Borrar Campaña"
+                                    >
+                                        <ArrowRight size={20} className="hidden" /> {/* Hack to keep layout size logic if needed, but we replace icon */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                    </button>
+                                    <ArrowRight className="text-slate-600 group-hover:text-amber-500 transition" />
+                                </div>
                             </div>
                         </div>
                     ))}
