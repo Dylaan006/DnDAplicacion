@@ -64,11 +64,11 @@ export default function CampaignsPage() {
         // Generar código simple de 4 caracteres
         const code = Math.random().toString(36).substring(2, 6).toUpperCase();
 
-        const { data, error } = await supabase.from("campaigns").insert({
+        const { data, error } = await (supabase.from("campaigns") as any).insert({
             name: newCampaignName,
             dm_id: user?.id,
             join_code: code
-        }).select().single() as any;
+        }).select().single();
 
         if (error) {
             alert("Error al crear: " + error.message);
