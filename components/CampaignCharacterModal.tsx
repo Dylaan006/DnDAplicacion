@@ -15,7 +15,7 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     const supabase = createClient();
     const isOwner = character.user_id === currentUser;
 
-    const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'inventory' | 'temporal'>('stats');
+    const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'inventory' | 'temporal' | 'spells'>('stats');
     const [items, setItems] = useState<Item[]>([]);
     const [loadingItems, setLoadingItems] = useState(false);
 
@@ -139,6 +139,77 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     };
 
 
+    // --- LOGICA SPELL SLOTS ---
+    const [spellSlots, setSpellSlots] = useState<{ level: number, max: number, current: number }[]>(character.spell_slots || []);
+    const [isSpellSlotFormOpen, setIsSpellSlotFormOpen] = useState(false);
+    const [spellSlotForm, setSpellSlotForm] = useState({ level: 1, max: 2 });
+
+    useEffect(() => {
+        setSpellSlots(character.spell_slots || []);
+    }, [character.spell_slots]);
+
+    const saveSpellSlots = async (newSlots: typeof spellSlots) => {
+        setSpellSlots(newSlots);
+        await (supabase.from("characters") as any).update({ spell_slots: newSlots }).eq("id", character.id);
+    };
+
+    const handleAddSpellSlot = async () => {
+        if (spellSlotForm.level < 0 || spellSlotForm.max <= 0) return;
+
+        // Check if level exists
+        if (spellSlots.some(s => s.level === spellSlotForm.level)) {
+            alert(`Ya tienes slots de Nivel ${spellSlotForm.level}. Bórralo para reconfigurar.`);
+            return;
+        }
+
+        const newSlots = [...spellSlots, { ...spellSlotForm, current: spellSlotForm.max }].sort((a, b) => a.level - b.level);
+        await saveSpellSlots(newSlots);
+        setIsSpellSlotFormOpen(false);
+        setSpellSlotForm({ level: 1, max: 2 });
+    };
+
+    const handleDeleteSpellSlot = async (level: number) => {
+        if (!confirm(`¿Borrar slots de Nivel ${level}?`)) return;
+        const newSlots = spellSlots.filter(s => s.level !== level);
+        await saveSpellSlots(newSlots);
+    };
+
+    const toggleSlot = async (level: number, slotIndex: number) => {
+        const slots = [...spellSlots];
+        const slotGroup = slots.find(s => s.level === level);
+        if (!slotGroup) return;
+
+        // Logic: slotIndex is 0-based index of the circle clicked.
+        // If we click the 3rd circle (index 2), and currently we have 3 slots (indices 0,1,2 filled),
+        // we might want to "use" it.
+
+        // Simpler Logic: Just click to toggle a specific slot? 
+        // Or simpler RPG logic: "Current" is the number of available slots.
+        // Clicking a filled slot (available) makes it empty (used) -> decrement current
+        // Clicking an empty slot (used) makes it full (available) -> increment current
+
+        // Let's implement independent slots visually, but logically it's just a counter.
+        // If I have 3/4 slots. It means 3 are filled.
+        // If I click a filled one, I use one -> 2/4.
+        // If I click an empty one, I recover one -> 4/4.
+
+        // Just +/- buttons? No, user wants "squares that are full/empty".
+        // Let's render max squares. The first 'current' are full. The rest are empty.
+        // If user clicks a FULL square, we decrease current.
+        // If user clicks an EMPTY square, we increase current.
+
+        if (slotIndex < slotGroup.current) {
+            // Clicked a full slot -> Use it
+            slotGroup.current = Math.max(0, slotGroup.current - 1);
+        } else {
+            // Clicked an empty slot -> Recover it
+            slotGroup.current = Math.min(slotGroup.max, slotGroup.current + 1);
+        }
+
+        await saveSpellSlots(slots);
+    };
+
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
@@ -199,6 +270,12 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                             Atributos
                         </button>
                         <button
+                            onClick={() => setActiveTab('spells')}
+                            className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'spells' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                        >
+                            Hechizos
+                        </button>
+                        <button
                             onClick={() => setActiveTab('abilities')}
                             className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'abilities' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                         >
@@ -238,7 +315,72 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                         </div>
                     )}
 
-                    {/* TAB TEMPORAL (NUEVO) */}
+                    {/* TAB SPELLS (NUEVO) */}
+                    {activeTab === 'spells' && (
+                        <div className="space-y-6">
+                            {spellSlots.length === 0 && (
+                                <div className="text-center py-12 text-slate-500">
+                                    <div className="text-4xl mb-2 opacity-30">✨</div>
+                                    <p>No tienes Espacios de Conjuro configurados.</p>
+                                </div>
+                            )}
+
+                            {spellSlots.map((slot) => (
+                                <div key={slot.level} className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className="font-bold text-amber-500 text-lg uppercase tracking-wider">
+                                            {slot.level === 0 ? 'Trucos' : `Nivel ${slot.level}`}
+                                        </h3>
+                                        {isOwner && (
+                                            <button
+                                                onClick={() => handleDeleteSpellSlot(slot.level)}
+                                                className="text-slate-600 hover:text-red-500 p-1"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        {Array.from({ length: slot.max }).map((_, i) => {
+                                            const isAvailable = i < slot.current;
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => isOwner && toggleSlot(slot.level, i)}
+                                                    disabled={!isOwner}
+                                                    className={`
+                                                        w-10 h-10 rounded-lg border-2 transition-all duration-300 flex items-center justify-center
+                                                        ${isAvailable
+                                                            ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                                                            : 'bg-slate-950 border-slate-800 text-slate-700'}
+                                                        ${isOwner ? 'hover:scale-105 active:scale-95 cursor-pointer' : 'cursor-default'}
+                                                    `}
+                                                >
+                                                    <div className={`w-3 h-3 rounded-full ${isAvailable ? 'bg-amber-500' : 'bg-slate-800'}`} />
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                    <div className="mt-2 text-xs font-bold text-slate-500 text-right">
+                                        {slot.current} / {slot.max} Disponibles
+                                    </div>
+                                </div>
+                            ))}
+
+                            {isOwner && (
+                                <button
+                                    onClick={() => setIsSpellSlotFormOpen(true)}
+                                    className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-slate-500 font-bold hover:border-amber-500 hover:text-amber-500 hover:bg-slate-900/50 transition flex items-center justify-center gap-2"
+                                >
+                                    <Plus size={16} /> Configurar Nuevos Slots
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+
+                    {/* TAB TEMPORAL */}
                     {activeTab === 'temporal' && (
                         <div className="space-y-6">
                             <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
@@ -412,6 +554,41 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                         </div>
                     )}
                 </div>
+
+                {/* MODAL CONFIGURAR SPELL SLOT */}
+                {isSpellSlotFormOpen && (
+                    <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-6 animate-in fade-in">
+                        <div className="bg-slate-950 w-full max-w-sm p-6 rounded-2xl border border-slate-800 space-y-4 shadow-2xl">
+                            <h3 className="text-white font-bold flex items-center gap-2">
+                                <Zap className="text-amber-500" /> Configurar Espacios
+                            </h3>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Nivel de Conjuro</label>
+                                <input
+                                    type="number"
+                                    min="1" max="9"
+                                    className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white mt-1"
+                                    value={spellSlotForm.level}
+                                    onChange={e => setSpellSlotForm({ ...spellSlotForm, level: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Cantidad Total</label>
+                                <input
+                                    type="number"
+                                    min="1" max="10"
+                                    className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white mt-1"
+                                    value={spellSlotForm.max}
+                                    onChange={e => setSpellSlotForm({ ...spellSlotForm, max: Number(e.target.value) })}
+                                />
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <button onClick={() => setIsSpellSlotFormOpen(false)} className="flex-1 py-2 bg-slate-800 rounded text-slate-400 font-bold">Cancelar</button>
+                                <button onClick={handleAddSpellSlot} className="flex-1 py-2 bg-amber-600 rounded text-white font-bold">Añadir</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* MODAL EDITAR HABILIDAD (DENTRO DEL MODAL) */}
                 {isAbilityFormOpen && (

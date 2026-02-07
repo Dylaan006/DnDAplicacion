@@ -42,6 +42,13 @@ export interface Ability {
   type?: 'feature' | 'spell' | 'trait';
 }
 
+
+export interface SpellSlot {
+  level: number;
+  max: number;
+  current: number;
+}
+
 export interface Character {
   id: string;
   user_id: string;
@@ -71,6 +78,7 @@ export interface Character {
 
   // Content
   abilities: Ability[];
+  spell_slots?: SpellSlot[]; // NEW
   bio?: string;
   image_url?: string;
 
