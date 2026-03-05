@@ -8,7 +8,7 @@ SET role = 'dm'
 WHERE id = (
   SELECT id 
   FROM auth.users 
-  WHERE email = 'tu@email.com' -- <--- POLLO: CAMBIA ESTO POR TU EMAIL
+  WHERE email = 'rtapaicua@gmail.com' -- <--- POLLO: CAMBIA ESTO POR TU EMAIL
 );
 
 -- Verificación

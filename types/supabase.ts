@@ -47,6 +47,7 @@ export interface SpellSlot {
   level: number;
   max: number;
   current: number;
+  label?: string; // Custom title, e.g. "Nivel 1", "Cargas de Varita", etc.
 }
 
 export interface Character {
