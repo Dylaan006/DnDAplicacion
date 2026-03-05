@@ -97,6 +97,7 @@ export interface Badge {
   name: string;
   description: string | null;
   icon_key: string | null;
+  folder?: string | null;
   created_by?: string;
   created_at?: string;
 }
