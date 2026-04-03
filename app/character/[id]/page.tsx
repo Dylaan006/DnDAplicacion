@@ -84,7 +84,42 @@ export default function CharacterSheetPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, [id]);
+  useEffect(() => {
+    fetchData();
+
+    // -- REALTIME SUBSCRIPTIONS --
+    const channel = supabase.channel(`character_sheet_${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'characters', filter: `id=eq.${id}` }, (payload) => {
+        setCharacter(prev => prev ? { ...prev, ...payload.new } : null);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `character_id=eq.${id}` }, () => {
+        // Just reload items for simplicity with joins/ordering
+        const reloadItems = async () => {
+          const { data } = await supabase.from("items").select("*").eq("character_id", id).order('created_at', { ascending: true });
+          if (data) setItems(data as Item[]);
+        };
+        reloadItems();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'character_badges', filter: `character_id=eq.${id}` }, () => {
+        // Reload badges to get the updated details from the 'badges' table or handle deletions
+        const reloadBadges = async () => {
+          const { data } = await supabase.from("character_badges").select("*, badges(*)").eq("character_id", id);
+          if (data) setBadges(data.map((b: any) => b.badges as Badge).filter(b => b !== null));
+        };
+        reloadBadges();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'badges' }, () => {
+        // If ANY badge is updated, reload this character's badges to see if their badges changed info
+        const reloadBadges = async () => {
+          const { data } = await supabase.from("character_badges").select("*, badges(*)").eq("character_id", id);
+          if (data) setBadges(data.map((b: any) => b.badges as Badge).filter(b => b !== null));
+        };
+        reloadBadges();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id, supabase]);
 
   // --- FUNCIONES GENERALES ---
 

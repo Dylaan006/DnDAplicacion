@@ -130,10 +130,9 @@ export default function DMToolsPage() {
     const handleRenameFolder = async (oldName: string) => {
         const newName = folderDraft.trim();
         if (!newName || newName === oldName) { setEditingFolder(null); return; }
-        // Update all badges in this folder
-        const toUpdate = badges.filter(b => (b.folder || DEFAULT_FOLDER) === oldName);
-        for (const b of toUpdate) {
-            await (supabase.from("badges") as any).update({ folder: newName }).eq("id", b.id);
+        const idsToUpdate = badges.filter(b => (b.folder || DEFAULT_FOLDER) === oldName).map(b => b.id);
+        if (idsToUpdate.length > 0) {
+            await (supabase.from("badges") as any).update({ folder: newName }).in("id", idsToUpdate);
         }
         setBadges(prev => prev.map(b => (b.folder || DEFAULT_FOLDER) === oldName ? { ...b, folder: newName } : b));
         setFolders(prev => prev.map(f => f === oldName ? newName : f));
