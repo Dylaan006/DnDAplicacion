@@ -251,22 +251,24 @@ export default function CampaignsPage() {
                     ))}
 
                     {/* Player Campaigns */}
-                    {myParticipations.map(p => (
-                        <div
-                            key={p.id}
-                            onClick={() => router.push(`/campaigns/${p.campaign_id}`)}
-                            className="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-blue-500 cursor-pointer transition group"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="text-blue-500 text-xs font-bold mb-1 flex items-center gap-1"><Users size={12} /> JUGADOR</div>
-                                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition">{p.campaigns.name}</h3>
-                                    <p className="text-slate-400 text-sm mt-1">Unido el {new Date(p.joined_at).toLocaleDateString()}</p>
+                    {myParticipations
+                        .filter((p, index, self) => index === self.findIndex(t => t.campaign_id === p.campaign_id))
+                        .map(p => (
+                            <div
+                                key={p.id}
+                                onClick={() => router.push(`/campaigns/${p.campaign_id}`)}
+                                className="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-blue-500 cursor-pointer transition group"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="text-blue-500 text-xs font-bold mb-1 flex items-center gap-1"><Users size={12} /> JUGADOR</div>
+                                        <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition">{p.campaigns.name}</h3>
+                                        <p className="text-slate-400 text-sm mt-1">Unido el {new Date(p.joined_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <ArrowRight className="text-slate-600 group-hover:text-blue-500 transition" />
                                 </div>
-                                <ArrowRight className="text-slate-600 group-hover:text-blue-500 transition" />
                             </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
 
             </main>

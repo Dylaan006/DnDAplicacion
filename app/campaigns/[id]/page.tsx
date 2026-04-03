@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Shield, Users, Heart, Zap, Sword, Award, Gift, LogOut, PlusCircle, Trash2, X } from "lucide-react";
 import { Campaign, CampaignParticipant, Character } from "@/types/supabase";
 
+import AssignCharacterModal from "@/components/AssignCharacterModal";
 import CampaignCharacterModal from "@/components/CampaignCharacterModal";
 
 type ParticipantWithChar = CampaignParticipant & {
@@ -33,6 +34,8 @@ export default function CampaignRoomPage() {
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
     const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [dmCharacters, setDmCharacters] = useState<Character[]>([]);
 
     // Enemy State
     const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -99,10 +102,12 @@ export default function CampaignRoomPage() {
             // 2. Cargar Participantes iniciales (con sus personajes)
             await fetchParticipants();
 
-            // 3. Si es DM, cargar insignias disponibles
             if (userIsDM) {
                 const { data: badgeData } = await supabase.from("badges").select("*").eq("created_by", user.id);
                 if (badgeData) setBadges(badgeData);
+
+                const { data: charData } = await supabase.from("characters").select("*").eq("user_id", user.id).eq("is_enemy", false);
+                if (charData) setDmCharacters(charData as Character[]);
             }
 
             setLoading(false);
@@ -313,6 +318,12 @@ export default function CampaignRoomPage() {
                                 className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold flex items-center justify-center gap-2"
                             >
                                 <Award size={16} /> Gestionar Insignias
+                            </button>
+                            <button
+                                onClick={() => setIsAssignModalOpen(true)}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition"
+                            >
+                                <PlusCircle size={16} /> Asignar Personaje
                             </button>
                         </>
                     )}
@@ -709,6 +720,19 @@ export default function CampaignRoomPage() {
                     character={characterToView}
                     currentUser={currentUserId}
                     onClose={() => setViewCharacterId(null)}
+                />
+            )}
+            {/* NUEVO: MODAL ASIGNAR PERSONAJE (DM ONLY) */}
+            {isAssignModalOpen && isDM && (
+                <AssignCharacterModal
+                    campaignId={campaignId as string}
+                    dmCharacters={dmCharacters}
+                    participants={participants.filter(p => p.role === 'player')}
+                    onClose={() => setIsAssignModalOpen(false)}
+                    onSuccess={() => {
+                        setIsAssignModalOpen(false);
+                        // No need to reload, Realtime handles it
+                    }}
                 />
             )}
         </div>
