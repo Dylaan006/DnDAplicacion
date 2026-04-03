@@ -259,6 +259,10 @@ export default function CharacterSheetPage() {
             </div>
             {/* Campos de edición rápida */}
             <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="text-[10px] uppercase font-bold text-slate-500">Carpeta</label>
+                <input type="text" className="w-full bg-slate-950 p-2 rounded border border-slate-700 focus:border-amber-500 outline-none" value={editForm.folder || "General"} onChange={e => setEditForm({ ...editForm, folder: e.target.value })} />
+              </div>
               <div><label className="text-[10px] uppercase font-bold text-slate-500">Nivel</label><input type="number" className="w-full bg-slate-950 p-2 rounded border border-slate-700 focus:border-amber-500 outline-none" value={editForm.level} onChange={e => setEditForm({ ...editForm, level: Number(e.target.value) })} /></div>
               <div><label className="text-[10px] uppercase font-bold text-slate-500">HP Max</label><input type="number" className="w-full bg-slate-950 p-2 rounded border border-slate-700 focus:border-amber-500 outline-none" value={editForm.hp_max} onChange={e => setEditForm({ ...editForm, hp_max: Number(e.target.value) })} /></div>
               <div><label className="text-[10px] uppercase font-bold text-slate-500">CA</label><input type="number" className="w-full bg-slate-950 p-2 rounded border border-slate-700 focus:border-amber-500 outline-none" value={editForm.armor_class} onChange={e => setEditForm({ ...editForm, armor_class: Number(e.target.value) })} /></div>

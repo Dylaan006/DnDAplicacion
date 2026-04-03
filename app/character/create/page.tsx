@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Save, ArrowRight, Dices, Brain, Info, Shield, CheckCircle } from "lucide-react";
@@ -20,12 +20,33 @@ export default function CreateCharacterPage() {
     class: "",
     level: 1,
     hp_max: 10,
+    folder: "General",
     str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10
   });
+
+  const [existingFolders, setExistingFolders] = useState<string[]>(["General"]);
 
   const updateForm = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
+
+  useEffect(() => {
+    const fetchFolders = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("characters")
+        .select("folder")
+        .eq("user_id", user.id);
+        
+      if (data) {
+        const unique = [...new Set(data.map(d => (d as any).folder || 'General'))];
+        setExistingFolders(unique.length ? unique : ["General"]);
+      }
+    };
+    fetchFolders();
+  }, [supabase]);
 
   // --- LOGICA DE ATRIBUTOS ---
   const getMod = (curr: number) => Math.floor((curr - 10) / 2);
@@ -60,6 +81,7 @@ export default function CreateCharacterPage() {
       race: formData.race,
       class: formData.class,
       level: formData.level,
+      folder: formData.folder || "General",
       hp_current: formData.hp_max,
       hp_max: formData.hp_max,
       armor_class: calculateAC(),
@@ -73,7 +95,7 @@ export default function CreateCharacterPage() {
       abilities: []
     };
 
-    const { error } = await supabase.from("characters").insert(newCharacterPayload as any);
+    const { error } = await (supabase.from("characters") as any).insert(newCharacterPayload);
 
     if (error) {
       alert("Error: " + error.message);
@@ -92,10 +114,26 @@ export default function CreateCharacterPage() {
         <input
           autoFocus
           placeholder="Ej: Valerius el Audaz..."
-          className="w-full bg-slate-900 border border-slate-700 p-5 rounded-2xl text-2xl font-black text-white focus:border-amber-500 outline-none transition placeholder:text-slate-700"
+          className="w-full bg-slate-900 border border-slate-700 p-5 rounded-2xl text-2xl font-black text-white focus:border-amber-500 outline-none transition placeholder:text-slate-700 shadow-inner"
           value={formData.name}
           onChange={e => updateForm("name", e.target.value)}
         />
+      </div>
+
+      <div className="space-y-3">
+        <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Carpeta de Organización</label>
+        <div className="relative group">
+            <input
+                list="folder-list"
+                placeholder="Selecciona o escribe una carpeta (ej: Campaña 1, Personajes Secundarios...)"
+                className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-white focus:border-amber-500 outline-none transition"
+                value={formData.folder}
+                onChange={e => updateForm("folder", e.target.value)}
+            />
+            <datalist id="folder-list">
+                {existingFolders.map(f => <option key={f} value={f} />)}
+            </datalist>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -219,7 +257,7 @@ export default function CreateCharacterPage() {
       <div className="bg-amber-900/10 border border-amber-900/30 p-4 rounded-xl flex items-center gap-3 text-left">
         <CheckCircle className="text-amber-500 shrink-0" />
         <p className="text-sm text-amber-200/80">
-          Tu personaje está listo. Al hacer clic en "Forjar", se guardará en tu cuenta y podrás acceder a su hoja completa.
+          Tu personaje está listo en la carpeta <span className="font-bold text-white tracking-widest underline decoration-amber-500">{formData.folder}</span>. Al hacer clic en "Forjar", se guardará en tu cuenta.
         </p>
       </div>
     </div>

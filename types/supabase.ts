@@ -82,6 +82,7 @@ export interface Character {
   spell_slots?: SpellSlot[]; // NEW
   bio?: string;
   image_url?: string;
+  folder?: string;
 
   created_at?: string;
 }
