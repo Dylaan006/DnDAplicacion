@@ -15,9 +15,11 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     const supabase = createClient();
     const isOwner = character.user_id === currentUser;
 
-    const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'inventory' | 'temporal' | 'spells'>('stats');
+    const [activeTab, setActiveTab] = useState<'stats' | 'abilities' | 'inventory' | 'temporal' | 'spells' | 'badges'>('stats');
     const [items, setItems] = useState<Item[]>([]);
     const [loadingItems, setLoadingItems] = useState(false);
+    const [badges, setBadges] = useState<any[]>([]);
+    const [loadingBadges, setLoadingBadges] = useState(false);
 
     // Initiative Local State
     const [localInitiative, setLocalInitiative] = useState(character.initiative);
@@ -31,20 +33,41 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
     const [itemForm, setItemForm] = useState({ name: "", description: "" });
     const [editingItem, setEditingItem] = useState<Item | null>(null);
 
-    // Cargar Items al montar
+    // Cargar Datos al montar
     useEffect(() => {
-        const fetchItems = async () => {
+        const fetchData = async () => {
             setLoadingItems(true);
-            const { data } = await supabase
-                .from("items")
-                .select("*")
-                .eq("character_id", character.id)
-                .order('created_at', { ascending: true });
-
-            if (data) setItems(data as Item[]);
+            setLoadingBadges(true);
+            
+            // Items
+            const { data: itemData } = await (supabase.from("items") as any).select("*").eq("character_id", character.id).order('created_at', { ascending: true });
+            if (itemData) setItems(itemData as Item[]);
             setLoadingItems(false);
+
+            // Badges
+            const { data: badgeData } = await (supabase.from("character_badges") as any).select("*, badges(*)").eq("character_id", character.id);
+            if (badgeData) setBadges(badgeData.map((b: any) => b.badges).filter((b: any) => b !== null));
+            setLoadingBadges(false);
         };
-        fetchItems();
+
+        fetchData();
+
+        // Realtime Subscription
+        const channel = supabase.channel(`campaign_modal_${character.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `character_id=eq.${character.id}` }, () => {
+                 (supabase.from("items") as any).select("*").eq("character_id", character.id).then((res: any) => res.data && setItems(res.data));
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'character_badges', filter: `character_id=eq.${character.id}` }, () => {
+                 (supabase.from("character_badges") as any).select("*, badges(*)").eq("character_id", character.id)
+                    .then((res: any) => res.data && setBadges(res.data.map((b: any) => b.badges).filter((b: any) => b !== null)));
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'badges' }, () => {
+                 (supabase.from("character_badges") as any).select("*, badges(*)").eq("character_id", character.id)
+                    .then((res: any) => res.data && setBadges(res.data.map((b: any) => b.badges).filter((b: any) => b !== null)));
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
     }, [character.id, supabase]);
 
     // Update Initiative
@@ -272,6 +295,12 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                             className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'temporal' ? 'border-amber-500 text-amber-500' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                         >
                             Temporal
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('badges')}
+                            className={`pb-3 px-3 text-sm font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${activeTab === 'badges' ? 'border-purple-500 text-purple-400' : 'border-transparent text-slate-500 hover:text-purple-300'}`}
+                        >
+                            Logros
                         </button>
                     </div>
                 </div>
@@ -547,6 +576,34 @@ export default function CampaignCharacterModal({ character, currentUser, onClose
                                         <button onClick={() => openItemForm()} className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-slate-500 font-bold hover:border-emerald-500 hover:text-emerald-500 hover:bg-slate-900/50 transition flex items-center justify-center gap-2">
                                             <Plus size={16} /> Nuevo Objeto
                                         </button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* TAB BADGES */}
+                    {activeTab === 'badges' && (
+                        <div className="space-y-4">
+                            {loadingBadges ? (
+                                <div className="text-center py-10 text-purple-500">Cargando insignias...</div>
+                            ) : (
+                                <>
+                                    {badges.length === 0 ? (
+                                        <div className="text-center py-12 text-slate-500">
+                                            <div className="text-4xl mb-2 opacity-30">🎖️</div>
+                                            <p>No tienes insignias aún.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {badges.map((badge, idx) => (
+                                                <div key={idx} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col items-center text-center group hover:border-purple-500/50 transition">
+                                                    <div className="text-4xl mb-2 drop-shadow-md group-hover:scale-110 transition">{badge.icon_key || "🏆"}</div>
+                                                    <h3 className="font-bold text-white text-xs leading-tight mb-1">{badge.name}</h3>
+                                                    <p className="text-[10px] text-slate-500 leading-tight line-clamp-2">{badge.description}</p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
                                 </>
                             )}
